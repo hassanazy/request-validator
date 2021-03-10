@@ -7,6 +7,7 @@ use Respect\Validation\Factory;
 abstract class BaseRule
 {
     const CONFIG_ALL = 'all';
+    const CONFIG_ORM = 'orm';
     const CONFIG_DATA = 'data';
     const CONFIG_FIELD_RULES = 'fieldRules';
 
@@ -50,7 +51,7 @@ abstract class BaseRule
      */
     public function hasRule($rule)
     {
-        return in_array($rule, $this->getConfig(self::CONFIG_FIELD_RULES), true);
+        return strpos($this->getConfig(self::CONFIG_FIELD_RULES), $rule) !== false;
     }
 
     /**

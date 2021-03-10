@@ -17,8 +17,10 @@ Suggested Links:
 - [Feature Guide](/docs/feature-guide.md)
 - Rules
     - [Existing Rules](/docs/rules.md)
-    - [Adding custom Rules](/docs/custom-rules.md)
+    - [Data Provider](/docs/rules-database.md)
+    - [Customization](/docs/rules-customization.md)
     - [Formatting Message](/docs/formatting-message.md)
+- [Integrations](/docs/integrations.md)
 
 ----
 
@@ -28,7 +30,7 @@ Suggested Links:
 <?php
 
 $rules = [
-    # firstname and lastname must be present
+    # firstname and lastname must exists
     # they should be alphanumeric
     # atleast 2 characters
     'firstname, lastname' => 'required|alpha|min:2',
@@ -37,13 +39,14 @@ $rules = [
     'lastname'            => 'max:18',
 
     # must be an email format
-    # adding custom rule
-    'email'               => ['email', MyCustomRule::class],
+    # must be unique under 'users' table
+    'email'               => 'email|unique:users',
 
     # must be numeric
-    'id'                  => 'numeric',
-    'age'                 => ['min:16', 'numeric'],
-    'info[country]'       => ['required', 'alpha'],
+    # must exists under 'users' table
+    'id'                  => 'numeric|exists:users',
+    'age'                 => 'min:16|numeric',
+    'info[country]'       => 'required|alpha',
 
     # roll[0] or roll[1] values must be in the middle 1 to 100
     'roll[0], roll[1]'    => 'numeric|between:1, 100',
@@ -88,40 +91,40 @@ $customMessage = [
    'elevatorFloor.notIn' => 'Oops',
 ];
 
-$validation = \Progsmile\Validator\Validator::make($_POST, $rules, $customMessage);
+$v = V::make($_POST, $rules, $customMessage);
 
 # for specific field
 # you can use below code.
-$validation->lastname->passes();
-$validation->lastname->fails();
+$v->lastname->passes();
+$v->lastname->fails();
 
 # if you're required to check everything
 # and there must no failing validation
-$validation->passes();
-$validation->fails();
+$v->passes();
+$v->fails();
 
 # get first error message
-$validation->first();
+$v->first();
 
 # get first error for `firstname`
-$validation->first('lastname');
-$validation->firstname->first();
+$v->first('lastname');
+$v->firstname->first();
 
 # return first error message from each field
-$validation->firsts();
+$v->firsts();
 
 # get all messages (with param for concrete field)
-$validation->messages();
-$validation->messages('password');
+$v->messages();
+$v->messages('password');
 
 # get all `password` messages
-$validation->password->messages();
+$v->password->messages();
 
 # get 2d array with fields and messages
-$validation->raw();
+$v->raw();
 
 # to append a message
-$validation->add('someField', 'Something is wrong with this');
+$v->add('someField', 'Something is wrong with this');
 ```
 
 <a name="contributing"></a>
@@ -140,7 +143,21 @@ The testing suite can be run on your own machine. The main dependency is [PHPUni
 ```sh
 # run this command from project root
 $ composer install --dev --prefer-source
-$ vendor/bin/phpunit --configuration phpunit.xml --coverage-text
+```
+
+A MySQL database is also required for several tests. Follow these instructions to create the database:
+
+```sh
+echo 'create database valid charset=utf8mb4 collate=utf8mb4_unicode_ci;' | mysql -u root
+cat tests/dist/schema.sql | mysql valid -u root
+```
+
+For these tests we use the user `root` without a password. You may need to change this in `tests/TestHelper.php` file.
+
+Once the database is created, run the tests on a terminal:
+
+```sh
+vendor/bin/phpunit --configuration phpunit.xml --coverage-text
 ```
 
 For additional information see [PHPUnit The Command-Line Test Runner](http://phpunit.de/manual/current/en/textui.html).
@@ -149,4 +166,4 @@ For additional information see [PHPUnit The Command-Line Test Runner](http://php
 ## License
 
 PHP Request Validator is open-sourced software licensed under the [GNU GPL](LICENSE).
-© 2020 Denys Klymenko and <a href="https://github.com/progsmile/request-validator/graphs/contributors">all the contributors</a>.
+© 2016 Denis Klimenko and <a href="https://github.com/progsmile/request-validator/graphs/contributors">all the contributors</a>.

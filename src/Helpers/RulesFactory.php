@@ -2,37 +2,27 @@
 
 namespace Progsmile\Validator\Helpers;
 
-use Progsmile\Validator\Rules\BaseRule;
-
 class RulesFactory
 {
     /**
-     * @param string $rule
+     * @param $ruleName
      * @param $config
      * @param $params
      *
-     * @return BaseRule
+     * @return mixed
      */
-    public static function createRule($rule, $config, $params)
+    public static function createRule($ruleName, $config, $params)
     {
+        $ruleName = ucfirst($ruleName);
 
-        // path to custom class
-        if (class_exists($rule)) {
-            $ruleInstance = new $rule($config);
-            $ruleInstance->setParams($params);
-
-            return $ruleInstance;
+        if (!file_exists(__DIR__.'/../Rules/'.$ruleName.'.php')) {
+            trigger_error('Such rule doesn\'t exists: '.$ruleName, E_USER_ERROR);
         }
 
-        $rule = ucfirst($rule);
-
-        if (!file_exists(__DIR__ . '/../Rules/' . $rule . '.php')) {
-            throw new \Exception('Rule doesn\'t exists: ' . $rule);
-        }
-
-        $class = 'Progsmile\\Validator\\Rules\\' . $rule;
+        $class = 'Progsmile\\Validator\\Rules\\'.$ruleName;
 
         $ruleInstance = new $class($config);
+
         $ruleInstance->setParams($params);
 
         return $ruleInstance;

@@ -2,17 +2,23 @@
 
 namespace Progsmile\Validator;
 
-use Progsmile\Validator\Helpers\DataFilter;
+use Progsmile\Validator\Helpers\PdoTrait;
+use Progsmile\Validator\Helpers\MysqliTrait;
 use Progsmile\Validator\Helpers\RulesFactory;
 use Progsmile\Validator\Helpers\ValidatorFacade;
 use Progsmile\Validator\Rules\BaseRule;
 
 final class Validator
 {
+    use PdoTrait;
+    use MysqliTrait;
+
     /** @var ValidatorFacade */
     private static $validatorFacade = null;
 
-    private static $config = [];
+    private static $config = [
+        BaseRule::CONFIG_ORM => '\Progsmile\Validator\DbProviders\PhalconAdapter',
+    ];
 
     /**
      * Make validation.
@@ -27,16 +33,21 @@ final class Validator
     {
         self::$validatorFacade = new ValidatorFacade($userMessages);
 
-        $data = DataFilter::prepareData($data);
-        $rules = DataFilter::filterRules($rules);
+        $data = self::prepareData($data);
+        $rules = self::prepareRules($rules);
 
         foreach ($rules as $fieldName => $fieldRules) {
-            if (empty($fieldRules)) {
+            $fieldName = trim($fieldName);
+            $fieldRules = trim($fieldRules);
+
+            if (!$fieldRules) {
                 //no rules
                 continue;
             }
 
-            foreach ($fieldRules as $concreteRule) {
+            $groupedRules = explode('|', $fieldRules);
+
+            foreach ($groupedRules as $concreteRule) {
                 $ruleNameParam = explode(':', $concreteRule);
                 $ruleName = $ruleNameParam[0];
 
@@ -68,7 +79,75 @@ final class Validator
     }
 
     /**
-     * Singleton
+     * Prepare user data for validator.
+     *
+     * @param array $data
+     *
+     * @return array
+     */
+    private static function prepareData(array $data)
+    {
+        $newData = [];
+
+        foreach ($data as $paramName => $paramValue) {
+            if (is_array($paramValue)) {
+                foreach ($paramValue as $newKey => $newValue) {
+                    $newData[trim($paramName).'['.trim($newKey).']'] = trim($newValue);
+                }
+            } else {
+                $newData[trim($paramName)] = trim($paramValue);
+            }
+        }
+
+        return $newData;
+    }
+
+    /**
+     * Merges all field's rules into one
+     * if you have elegant implementation, you are welcome.
+     *
+     * @param array $rules
+     *
+     * @return array
+     */
+    private static function prepareRules(array $rules)
+    {
+        $mergedRules = [];
+
+        foreach ($rules as $ruleFields => $ruleConditions) {
+
+            //if set of fields like 'firstname, lastname...'
+            if (strpos($ruleFields, ',') !== false) {
+                foreach (explode(',', $ruleFields) as $fieldName) {
+                    $fieldName = trim($fieldName);
+
+                    if (!isset($mergedRules[$fieldName])) {
+                        $mergedRules[$fieldName] = $ruleConditions;
+                    } else {
+                        $mergedRules[$fieldName] .= '|'.$ruleConditions;
+                    }
+                }
+            } else {
+                if (!isset($mergedRules[$ruleFields])) {
+                    $mergedRules[$ruleFields] = $ruleConditions;
+                } else {
+                    $mergedRules[$ruleFields] .= '|'.$ruleConditions;
+                }
+            }
+        }
+
+        $finalRules = [];
+
+        //remove duplicated rules, like 'required|alpha|required'
+        foreach ($mergedRules as $newRule => $rule) {
+            $finalRules[$newRule] = implode('|', array_unique(explode('|', $rule)));
+        }
+
+        return $finalRules;
+    }
+
+    /**
+     * Singleton implementation.
      */
     private function __construct()
     {

@@ -1,43 +1,43 @@
-# Validator Feature Guide
+# Welcome to Validator Feature Guide
 
 ## Namespace import
 ```php
-use Progsmile\Validator\Validator;
+use Progsmile\Validator\Validator as V;
 ```
 
 
 ## Getting messages
 ```php
-$validation = Validator::make($_POST,[
-   'phone'    => 'required|phoneMask:(+38(###)###-##-##)',
-   'email'    => 'required|email',
+$v = V::make($_POST,[
+   'phone'    => 'required|phoneMask:(+38(###)###-##-##)'
+   'email'    => 'required|email|unique:users',
    'age'      => 'numeric|required|min:16',
-   'homepage' => 'url'
+   'homepage' => 'url',
 ]);
 
 
-$validation->messages(); //all messages
+$v->messages(); //returns all messages
 
 
-$validation->messages('age'); //all messages for age field
+$v->messages('age'); //returns all messages for age field
 
-$validation->age->messages(); //the same as above
-
-
-$validation->firsts(); // returns one error message from each invalid rule
+$v->age->messages(); //the same
 
 
-$validation->first(); // returns first non-valid message
+$v->firsts(); // returns one error message from each invalid rule
 
-$validation->first('homepage'); // returns first non-valid message for specific field
 
-$validation->phone->first(); //first error message from field `phone`
+$v->first(); // returns first non-valid message
+
+$v->first('homepage'); // returns first non-valid message for specific field
+
+$v->phone->first(); //first error message from field `phone`
 ```
 
 ## Grouping fields rules
 Just put comma after each field
 ```php
-$validation = Validator::make($_POST,[
+$v = V::make($_POST,[
    'firstname, lastname, email' => 'required',
    'firstname, lastname'        => 'alpha|min:2',
    'email'                      => 'email'
@@ -48,16 +48,16 @@ $validation = Validator::make($_POST,[
 ## Simple check :)
 ```php
 
-$validation->fails() or $validation->passes()
+$v->fails() or $v->passes()
 
-$validation->firstname->fails() or $validation->firstname->passes() // `firstname` is field name
+$v->firstname->fails() or $v->firstname->passes() // `firstname` is field name
 ```
 
 
 ## Array validation support
 Simple as usual variables
 ```php
-$validation = Validator::make([
+$v = V::make([
     'info'      => ['phone' => '+380987365432', 'country' => 'Albania'],
     'test'      => [10, 20, 30, 'fail' => 40],
 ], [
@@ -76,10 +76,10 @@ $validation = Validator::make([
 Pass 3rd array to Validator make method for your messages
 Available variables: **:field:**, **:value:**, **:param:** in messages
 ```php
-$validation = Validator::make($_POST,[
+$v = V::make($_POST,[
    'firstname' => 'required|alpha',
 ], [
-   'firstname.required' => ':field: is required',
+   'firstname.required' => ':field: is required'
    'firstname.alpha'    => 'Please write your real name instead of :value:'
 ]);
 
@@ -87,11 +87,11 @@ $validation = Validator::make($_POST,[
 
 ## Validator has messages by default
 ```php
-$validation = Validator::make([],[
+$v = V::make([],[
    'age' => 'numeric|required',
 ]);
 
-echo $validation->first(); //Field age is not a number
+echo $v->first(); //Field age is not a number
 ```
 
 
@@ -101,8 +101,46 @@ Supports HTML and Json formats from the box
 ```php
 use \Progsmile\Validator\Format\Json;
 
-echo $validation->format(); // HTML format
+echo $v->format(); // HTML format
 
-echo $validation->format(Json::class); // Json format
+echo $v->format(Json::class); // Json format
+
+```
+
+## Using unique and exists rules
+Such rules requires database connection, several ways to achieve that
+
+### Using PDO
+Simple create new PDO connection, or pass ready PDO instance
+
+```php
+V::setupPDO('mysql:host=localhost;dbname=valid;charset=utf8', 'root', '123')
+
+//or
+
+$pdo = ServiceContainer::getMyPDOObject();
+V::setPDO($pdo);
+
+```
+
+### Using built-in ORMs
+
+```php
+use \Progsmile\Validator\DbProviders\PhalconORM; //Phalcon ORM is by default
+use \Progsmile\Validator\DbProviders\Wpdb;
+
+V::setDataProvider(PhalconORM::class);
+```
+
+## Checking up table values
+```php
+
+$v = V::make([
+    'id'    => '1',
+    'email' => 'this.email@unique.com',
+], [
+    'id'    => 'required|numeric|exists:products', // id - table attribute, products - table
+    'email' => 'required|email|unique:users',      // email - table attr, users - table
+]);
 
 ```

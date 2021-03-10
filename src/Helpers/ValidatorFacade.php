@@ -103,7 +103,7 @@ class ValidatorFacade
         $messages = [];
         foreach ($this->errorMessages as $fieldsMessages) {
             foreach ($fieldsMessages as $fieldMessage) {
-                $messages[] = $fieldMessage;
+                $messages[] = htmlentities($fieldMessage);
                 break;
             }
         }
@@ -127,7 +127,7 @@ class ValidatorFacade
             $message = reset($firstMessages);
         }
 
-        return $message;
+        return htmlentities($message);
     }
 
     /**

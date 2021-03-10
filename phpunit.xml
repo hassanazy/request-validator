@@ -10,7 +10,7 @@
          processIsolation="false"
          stopOnFailure="false"
          syntaxCheck="true">
-    <testsuite name="Test suite">
+    <testsuite name="Phalcon - Testsuite">
         <directory>./tests</directory>
     </testsuite>
     <filter>
